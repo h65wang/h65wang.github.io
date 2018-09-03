@@ -1,0 +1,77 @@
+<html>
+
+<head>
+	<title>Random words</title>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
+	<!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> -->
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+</head>
+
+<body>
+
+	<div class="well" ng-app="app" ng-controller="dictCtrl">
+
+		<!-- instructions -->
+		<div ng-hide="letter">
+			<p>
+				<b>Disclaimer:</b>
+				<a href="https://en.wikipedia.org/wiki/Scattergories">Scattergories</a> is a creative-thinking category-based party game originally published by Parker Brothers in 1988. This
+				web app is a modified version of the game, developed for demo and educational purposes only. Commercial use is prohibited.</p>
+
+			<p>
+				<b>Rules:</b> You will see a random letter and 12 categories for each game. Your goal is to think of a word that starts
+				with the assigned letter for each category. Bonus points for alliterations. No points if your friends thought of the
+				same word. After the time is up, compare your answers with friends.</p>
+
+			<p>
+				<b>Example:</b> If the assigned letter is "M", you may put "Mickey Mouse" under "cartoon characters" category for 2 points,
+				and put "Mike" under "boy's name" category for 1 point. If someone also wrote "Mike", neither of you gets a point. So
+				be creative!
+			</p>
+			<p>
+				<b>Setup:</b> Make sure everyone is on this page (refresh the browser if necessary), then together decide on a code. Wait
+				until everyone has entered the same code, for example "oranges", then press "New Game".
+			</p>
+			<!-- seed input -->
+			<input class="form-control" autocomplete="off" type="text" ng-model="seed_text" placeholder="Enter the same code as your friends">
+
+		</div>
+
+		<!-- progress bar -->
+		<div ng-if="letter" class="progress">
+			<div ng-show="countDown" class="progress-bar progress-bar-info progress-bar-striped" ng-style="{'width': 100 * (countDown / totalTime) + '%'}">
+				{{countDown}}
+			</div>
+
+			<div ng-hide="countDown" class="progress-bar progress-bar-info" style="width: 100%">
+				Time's up! Compare your answers with friends.
+			</div>
+		</div>
+
+		<!-- random letter  -->
+		<p ng-if="letter"> Think of words that starts with:
+			<strong>{{letter}}</strong>
+		</p>
+
+		<!-- categories -->
+		<ol ng-if="letter ">
+			<div ng-repeat="entry in word_list ">
+				<li>{{entry}}:
+					<br>
+					<input class="form-control " type="text " autocomplete="off " placeholder="{{letter}} " ng-disabled="countDown <=0 "> </li>
+			</div>
+		</ol>
+
+		<!-- start button -->
+		<br />
+		<button type="button " class="btn btn-info " ng-click='gen(seed_text)' ng-show="seed_text && countDown==0 ">New Game</button>
+	</div>
+
+	<script src="controller.js "></script>
+
+</body>
+
+</html>
