@@ -1,0 +1,144 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirsch operator</title>
+</head>
+
+<body>
+    <input id="filePicker" type="file" accept="image" />
+    <hr />
+
+    <canvas id="canvas" width="500px" height="500px"></canvas>
+</body>
+
+<script>
+    let width, height = 0;
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const filePicker = document.getElementById('filePicker');
+    filePicker.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        const url = window.URL.createObjectURL(file);
+        const image = new Image();
+        image.src = url;
+        image.onload = async function () {
+            width = image.width;
+            height = image.height;
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(image, 0, 0);
+            process();
+        }
+    });
+
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    const sampleData = ctx.getImageData(0, 0, 1, 1);
+
+    function getPixel(x, y) {
+        const [r, g, b, alpha] = ctx.getImageData(x, y, 1, 1).data;
+        return {
+            r, g, b, alpha,
+        }
+    }
+
+    function setPixel(x, y, greyscale) {
+        sampleData.data[0] = greyscale;
+        sampleData.data[1] = greyscale;
+        sampleData.data[2] = greyscale;
+        sampleData.data[3] = 255;
+        ctx.putImageData(sampleData, x, y);
+    }
+
+    let colors;
+    async function process() {
+        // initialize array to store colors:
+        colors = new Array(width);
+        for (let i = 0; i < width; i++) {
+            colors[i] = new Array(height);
+        }
+        // get all colors from canvas:
+        for (let i = 0; i < width; i++) {
+            for (let j = 0; j < height; j++) {
+                const color = getPixel(i, j);
+                colors[i][j] = color;
+                colors[i][j].v = convert2Grey(color);
+            }
+            // once we have scanned the 3rd line, we can start working on the 2nd line:
+            if (i >= 2) {
+                detectLine(i - 1);
+                renderLine(i - 1);
+            }
+            await sleep(1);
+        }
+    }
+
+    function convert2Grey(color) {
+        return Math.round((color.r + color.g + color.b) / 3);
+        // return Math.sqrt(0.299 * color.r * color.r +
+        //     0.587 * color.g * color.g +
+        //     0.114 * color.b * color.b);
+    }
+
+    function detectLine(i) {
+        for (let j = 1; j < height - 1; j++) {
+            matrix = [
+                [colors[i - 1][j - 1].v, colors[i][j - 1].v, colors[i + 1][j - 1].v],
+                [colors[i - 1][j].v, colors[i][j].v, colors[i + 1][j].v],
+                [colors[i - 1][j + 1].v, colors[i][j + 1].v, colors[i + 1][j + 1].v]
+            ];
+
+            const k = kirsch(matrix);
+            colors[i][j].k = k;
+        }
+
+    }
+
+    function kirsch(matrix) {
+        const N = [[5, 5, 5], [-3, 0, -3], [-3, -3, -3]];
+        const S = [[-3, -3, -3], [-3, 0, -3], [5, 5, 5]];
+        const W = [[5, -3, -3], [5, 0, -3], [5, -3, -3]];
+        const E = [[-3, -3, 5], [-3, 0, 5], [-3, -3, 5]];
+
+        const NW = [[5, 5, -3], [5, 0, -3], [-3, -3, -3]];
+        const NE = [[-3, 5, 5], [-3, 0, 5], [-3, -3, -3]];
+        const SW = [[-3, -3, -3], [5, 0, -3], [5, 5, -3]];
+        const SE = [[-3, -3, -3], [-3, 0, 5], [-3, 5, 5]];
+
+        return [N, S, W, E, NW, NE, SW, SE].map((m) => {
+            let sum = 0;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    let product = m[i][j] * matrix[i][j];
+                    sum += product;
+                }
+            }
+            return sum;
+        }).reduce((accum, value) => Math.max(accum, value));
+    }
+
+    function renderLine(i, threshold = 150) {
+        for (let j = 1; j < height - 1; j++) {
+            if (colors[i][j].k > threshold) {
+                setPixel(i, j, 0);
+            } else {
+                setPixel(i, j, 255);
+            }
+        }
+    }
+
+    // use browser console to call this function with different threshold value,
+    // for example, render(200)
+    async function render(threshold) {
+        for (let i = 1; i < width - 1; i++) {
+            renderLine(i, threshold);
+            await sleep(1);
+        }
+    }
+
+</script>
+
+</html>
